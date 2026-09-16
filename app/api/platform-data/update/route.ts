@@ -46,6 +46,7 @@ export async function POST(request: Request) {
         const dattoCreds = credentials as DattoCredentials;
         updateSuccess = await updateDattoWarranty(
           deviceId,
+          warranty.startDate,
           warranty.endDate,
           dattoCreds
         );
