@@ -500,71 +500,81 @@ async function fetchDevicesUsingRealAPI(client: AxiosInstance): Promise<Device[]
  * @returns True if update was successful, false otherwise
  */
 export async function updateDattoWarranty(
-  deviceUid: string, 
-  warrantyEndDate: string, 
+  deviceUid: string,
+  warrantyStartDate: string,
+  warrantyEndDate: string,
   credentials?: DattoCredentials
 ): Promise<boolean> {
   try {
-    // Use default or provided credentials
     const url = credentials?.url || '';
     const apiKey = credentials?.apiKey || '';
     const secretKey = credentials?.secretKey || '';
-    
-    // Determine if we should use real API based on whether we have complete credentials
-    const useRealApi = Boolean(credentials?.url && credentials?.apiKey && credentials?.secretKey);
 
-    logger.info(`Updating warranty for Datto device ${deviceUid} to ${warrantyEndDate} ${!useRealApi ? '(DEMO MODE)' : ''}`, 'datto-api', {
-      deviceUid,
-      warrantyEndDate,
-      mode: useRealApi ? 'api' : 'demo'
-    });
+    const useRealApi = Boolean(
+      credentials?.url &&
+      credentials?.apiKey &&
+      credentials?.secretKey
+    );
 
-    // If using demo mode, simulate update
-    if (!useRealApi) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      logger.info(`[DEMO] Successfully updated warranty date for device ${deviceUid} to ${warrantyEndDate}`, 'datto-api', {
+    logger.info(
+      `Updating warranty for Datto device ${deviceUid}: ${warrantyStartDate} - ${warrantyEndDate} ${!useRealApi ? '(DEMO MODE)' : ''}`,
+      'datto-api',
+      {
         deviceUid,
+        warrantyStartDate,
         warrantyEndDate,
-        mode: 'demo'
-      });
+        mode: useRealApi ? 'api' : 'demo'
+      }
+    );
+
+    if (!useRealApi) {
+      await new Promise(resolve => setTimeout(resolve, 500));
       return true;
     }
 
-    // Use the real API
-    const client = await createDattoRMMClient(url, apiKey, secretKey);
-    
-    // Call the Datto RMM API to update the warranty date
-    const response = await client.post(`/v2/device/${deviceUid}/warranty`, {
+    const client = await createDattoRMMClient(
+      url,
+      apiKey,
+      secretKey
+    );
+
+    // Native Datto warranty expiration field
+    await client.post(`/v2/device/${deviceUid}/warranty`, {
       warrantyDate: warrantyEndDate
     });
-    
-    // Check if the update was successful
-    if (response.status >= 200 && response.status < 300) {
-      logger.info(`Successfully updated warranty expiration date for device ${deviceUid} to ${warrantyEndDate}`, 'datto-api', {
-        deviceUid,
-        warrantyEndDate
+
+    // Datto UDF 10 = Warranty Start Date
+    if (warrantyStartDate) {
+      await client.post(`/v2/device/${deviceUid}/udf`, {
+        udf10: warrantyStartDate
       });
-      return true;
-    } else {
-      logger.error(`Failed to update warranty for device ${deviceUid}: Unexpected status code ${response.status}`, 'datto-api', {
-        deviceUid,
-        statusCode: response.status
-      });
-      return false;
     }
+
+    logger.info(
+      `Successfully updated Datto warranty for device ${deviceUid}`,
+      'datto-api',
+      {
+        deviceUid,
+        warrantyStartDate,
+        warrantyEndDate,
+        warrantyStartUdf: 10
+      }
+    );
+
+    return true;
+
   } catch (error) {
-    if (error instanceof Error) {
-      logger.error(`Error updating warranty for device ${deviceUid}: ${error.message}`, 'datto-api', {
+    logger.error(
+      `Error updating warranty for device ${deviceUid}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'datto-api',
+      {
         deviceUid,
-        error: error.message
-      });
-    } else {
-      logger.error(`Unknown error updating warranty for device ${deviceUid}: ${error}`, 'datto-api', {
-        deviceUid,
-        error: String(error)
-      });
-    }
+        error: error instanceof Error ? error.message : String(error)
+      }
+    );
+
     return false;
   }
-} 
+}
