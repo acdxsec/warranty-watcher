@@ -52,7 +52,7 @@ Don't want to self-host? Try it on cloud here: https://warrantywatcher.com
 
 #### Option 1: Docker Hub Image (Recommended)
 ```bash
-docker run -p 3000:3000 -v ./data:/app/data -e DB_PATH=/app/data/warranty.db mhaowork/warrantywatcher:latest
+docker run -p 3000:3000 -v ./data:/app/data -e DB_PATH=/app/data/warranty.db acdxsec/warrantywatcher:latest
 ```
 Note: your device database will be saved in the `data` folder under your current directory
 
@@ -72,7 +72,7 @@ docker stop CONTAINER_ID && docker rm CONTAINER_ID
 
 Pull the latest image
 ```bash
-docker pull mhaowork/warrantywatcher:latest
+docker pull acdxsec/warrantywatcher:latest
 ```
 
 Then you can execute the `docker run` command again.
